@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  DELETE
+}
+
+model User {
+  id          String        @id @default(uuid()) @db.Uuid
+  email       String        @unique
+  password    String
+  requests    Request[]
+  collections Collection[]
+  envVars     Environment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Request {
+  id           String       @id @default(uuid()) @db.Uuid
+  method       HttpMethod
+  url          String
+  headers      Json?
+  body         Json?
+  response     Json?
+  statusCode   Int?
+  createdAt    DateTime     @default(now())
+
+  userId       String       @db.Uuid
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  collectionId String?      @db.Uuid
+  collection   Collection?  @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([collectionId])
+  @@map("requests")
+}
+
+model Collection {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  userId    String     @db.Uuid
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  requests  Request[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("collections")
+}
+
+model Environment {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("environments")
+}
+
